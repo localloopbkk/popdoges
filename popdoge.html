@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PopDoge</title>
+  <style>
+    html,body{height:100%;margin:0;background:#000;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+    #stage{position:relative;width:100%;height:100%}
+    #img{
+      width:100%;height:100%;
+      object-fit:contain; /* change to cover if you want full-screen crop */
+      display:block;cursor:pointer;
+      user-select:none;-webkit-user-select:none;touch-action:manipulation;
+    }
+
+    /* overlays */
+    .overlay{
+      position:absolute;
+      top:50%;
+      transform:translateY(-50%);
+      width:min(280px, 40vw);
+      height:auto;
+      opacity:0;
+      pointer-events:none;
+      filter: drop-shadow(0 10px 24px rgba(0,0,0,.55));
+      transition: opacity 90ms ease;
+    }
+    .overlay.show{opacity:1;}
+    #wtf{left:4%;}
+    #keep{right:4%;}
+
+    /* centered-bottom dashboard */
+    #dash{
+      position:fixed;
+      left:50%;
+      bottom:14px;
+      transform:translateX(-50%);
+      width:min(920px, calc(100vw - 24px));
+      background:rgba(0,0,0,.45);
+      border:1px solid rgba(255,255,255,.18);
+      backdrop-filter: blur(10px);
+      color:#fff;
+      border-radius:18px;
+      padding:12px 12px;
+      z-index:10;
+    }
+    #dashTop{
+      display:flex;flex-wrap:wrap;gap:10px;
+      align-items:center;justify-content:space-between;
+      margin-bottom:10px;
+    }
+    .brand{font-weight:900;font-size:16px;letter-spacing:.2px}
+    .pill{
+      display:inline-flex;gap:8px;align-items:center;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.14);
+      padding:8px 10px;border-radius:999px;
+      font-weight:900;font-size:13px;
+      white-space:nowrap;
+    }
+    .muted{color:rgba(255,255,255,.75);font-weight:800}
+    .num{font-variant-numeric:tabular-nums}
+    #support{
+      margin-top:10px;
+      text-align:center;
+      font-size:12px;
+      color:rgba(255,255,255,.78);
+      font-weight:800;
+    }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <img id="img" alt="PopDoge" />
+
+    <!-- LEFT overlay: show every 10 clicks -->
+    <img id="wtf" class="overlay" src="wtf.png" alt="wtf" />
+
+    <!-- RIGHT overlay: show every 5 clicks -->
+    <img id="keep" class="overlay" src="keep.png" alt="keep" />
+  </div>
+
+  <div id="dash">
+    <div id="dashTop">
+      <div class="brand">PopDoge</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+        <div class="pill">🖱️ <span class="muted">Clicks:</span> <span id="myClicks" class="num">0</span></div>
+      </div>
+    </div>
+    <div id="support">Support us by ads — Ads help keep PopDoge free.</div>
+  </div>
+
+  <script>
+    /**
+     * ✅ Changes requested (implemented)
+     * 1) Left overlay wtf.png appears on every count divisible by 10
+     * 2) Right overlay keep.png appears on every count divisible by 5
+     * 3) Every click: image flips to 2.jpg ALWAYS (momentarily), then returns to rule-based image
+     * 4) Every click: plays "Pop" sound
+     *
+     * Files needed next to this HTML:
+     * 1.jpg, 2.jpg, 3.jpg, 4.jpg, 5.jpg, wtf.png, keep.png
+     */
+
+    // ====== Images ======
+    const IMG_1 = "1.jpg";
+    const IMG_2 = "2.jpg";
+    const IMG_3 = "3.jpg";
+    const IMG_4 = "4.jpg";
+    const IMG_5 = "5.jpg";
+
+    // How long to show 2.jpg after each click (ms)
+    const CLICK_FLASH_MS = 90;
+
+    // ====== Image rules from your earlier message ======
+    // 1–50   -> 1.jpg
+    // 51–100 -> 2.jpg
+    // 1000+  -> 3/4/5 by milestones
+    function imageForClicks(clicks){
+      if (clicks >= 50000) return IMG_5; // includes 50k and 100k
+      if (clicks >= 10000) return IMG_4; // includes 10k and 30k
+      if (clicks >= 1000)  return IMG_3; // includes 1k and 5k
+
+      const within100 = ((clicks - 1) % 100) + 1; // 1..100 repeating
+      return (within100 <= 50) ? IMG_1 : IMG_2;
+    }
+
+    // ---- Pop sound every click (Popcat-ish) ----
+    let audioCtx = null;
+    function ensureAudio(){
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
+    }
+    function popSound(){
+      ensureAudio();
+      const t = audioCtx.currentTime;
+
+      // pop tone
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(260, t);
+      osc.frequency.exponentialRampToValueAtTime(140, t + 0.05);
+
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.22, t + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.075);
+
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + 0.08);
+
+      // tiny noise click
+      const d = 0.015;
+      const size = Math.floor(audioCtx.sampleRate * d);
+      const buf = audioCtx.createBuffer(1, size, audioCtx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < size; i++) data[i] = (Math.random() * 2 - 1) * 0.6;
+
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buf;
+
+      const ng = audioCtx.createGain();
+      ng.gain.setValueAtTime(0.0001, t);
+      ng.gain.exponentialRampToValueAtTime(0.10, t + 0.002);
+      ng.gain.exponentialRampToValueAtTime(0.0001, t + d);
+
+      noise.connect(ng).connect(audioCtx.destination);
+      noise.start(t);
+      noise.stop(t + d);
+    }
+
+    // ---- UI / click handling ----
+    const imgEl = document.getElementById("img");
+    const myClicksEl = document.getElementById("myClicks");
+    const wtfEl = document.getElementById("wtf");
+    const keepEl = document.getElementById("keep");
+
+    let clicks = 0;
+    let flashTimer = null;
+
+    function showOverlays(){
+      // show wtf.png every 10 clicks (10,20,30...)
+      if (clicks > 0 && clicks % 10 === 0) wtfEl.classList.add("show");
+      else wtfEl.classList.remove("show");
+
+      // show keep.png every 5 clicks (5,10,15...)
+      if (clicks > 0 && clicks % 5 === 0) keepEl.classList.add("show");
+      else keepEl.classList.remove("show");
+    }
+
+    function setBaseImage(){
+      const src = imageForClicks(clicks);
+      if (imgEl.dataset.base !== src){
+        imgEl.dataset.base = src;
+      }
+      imgEl.src = src;
+    }
+
+    function flashClickImage(){
+      // Every click must switch to 2.jpg always
+      imgEl.src = IMG_2;
+      if (flashTimer) clearTimeout(flashTimer);
+      flashTimer = setTimeout(() => {
+        setBaseImage();
+      }, CLICK_FLASH_MS);
+    }
+
+    function tap(){
+      clicks += 1;
+      myClicksEl.textContent = clicks.toLocaleString("en-US");
+
+      popSound();
+      showOverlays();
+
+      // Always show 2.jpg immediately on click
+      flashClickImage();
+    }
+
+    imgEl.addEventListener("pointerdown", (e)=>{ e.preventDefault(); tap(); });
+    window.addEventListener("keydown", (e)=>{ if(e.code==="Space"){ e.preventDefault(); tap(); } });
+
+    // init
+    imgEl.src = IMG_1;
+  </script>
+</body>
+</html>
