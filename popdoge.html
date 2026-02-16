@@ -3,15 +3,55 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PopDoge</title>
+  <title>Popdoge — Global VPN Leaderboard</title>
   <style>
-    html,body{height:100%;margin:0;background:#000;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+    :root{
+      --bg0:#07080d; --bg1:#0d1020;
+      --glass: rgba(255,255,255,.08);
+      --glass2: rgba(255,255,255,.12);
+      --line: rgba(255,255,255,.16);
+      --shadow: 0 30px 80px rgba(0,0,0,.55);
+      --shadow2: 0 14px 35px rgba(0,0,0,.35);
+      --accent:#7c3aed;
+      --gold:#f59e0b;
+      --ink:#0b0c10;
+      --muted: rgba(255,255,255,.78);
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      --r: 22px; --r2: 28px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:var(--font); color:#fff;
+      background:
+        radial-gradient(1200px 800px at 15% 20%, rgba(124,58,237,.35), transparent 55%),
+        radial-gradient(1100px 700px at 80% 30%, rgba(34,197,94,.22), transparent 55%),
+        radial-gradient(900px 600px at 50% 90%, rgba(245,158,11,.18), transparent 55%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      overflow:hidden;
+    }
+
+    /* ===== Stage (main image) ===== */
     #stage{position:relative;width:100%;height:100%}
     #img{
       width:100%;height:100%;
-      object-fit:contain; /* change to cover if you want full-screen crop */
+      object-fit:contain;
       display:block;cursor:pointer;
       user-select:none;-webkit-user-select:none;touch-action:manipulation;
+    }
+
+    /* top-center logo */
+    #logo{
+      position:fixed;
+      top:14px;
+      left:50%;
+      transform:translateX(-50%);
+      width:min(170px, 44vw);
+      height:auto;
+      z-index:12;
+      pointer-events:none;
+      filter: drop-shadow(0 12px 28px rgba(0,0,0,.55));
+      opacity:.95;
     }
 
     /* overlays */
@@ -30,25 +70,25 @@
     #wtf{left:4%;}
     #keep{right:4%;}
 
-    /* centered-bottom dashboard */
+    /* ===== Bottom dashboard bar ===== */
     #dash{
       position:fixed;
       left:50%;
       bottom:14px;
       transform:translateX(-50%);
-      width:min(920px, calc(100vw - 24px));
-      background:rgba(0,0,0,.45);
-      border:1px solid rgba(255,255,255,.18);
-      backdrop-filter: blur(10px);
+      width:min(1050px, calc(100vw - 24px));
+      background:rgba(0,0,0,.42);
+      border:1px solid var(--line);
+      backdrop-filter: blur(12px);
       color:#fff;
-      border-radius:18px;
+      border-radius:20px;
       padding:12px 12px;
       z-index:10;
+      box-shadow: var(--shadow2);
     }
     #dashTop{
       display:flex;flex-wrap:wrap;gap:10px;
       align-items:center;justify-content:space-between;
-      margin-bottom:10px;
     }
     .brand{font-weight:900;font-size:16px;letter-spacing:.2px}
     .pill{
@@ -59,74 +99,391 @@
       font-weight:900;font-size:13px;
       white-space:nowrap;
     }
-    .muted{color:rgba(255,255,255,.75);font-weight:800}
+    .muted{color:var(--muted);font-weight:800}
     .num{font-variant-numeric:tabular-nums}
-    #support{
+    .btn{
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.10);
+      color:#fff;
+      border-radius:14px;
+      padding:10px 12px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .btn:hover{background: rgba(255,255,255,.14)}
+    .btnPrimary{
+      border:0;
+      background: linear-gradient(135deg, rgba(124,58,237,.98), rgba(96,165,250,.92));
+    }
+    .btnPrimary:hover{filter:brightness(1.03)}
+
+    #dashBottom{
       margin-top:10px;
-      text-align:center;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    #support{
       font-size:12px;
       color:rgba(255,255,255,.78);
       font-weight:800;
     }
+
+    /* ===== Leaderboard modal ===== */
+    #modalBackdrop{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(6px);
+      display:none;
+      z-index:50;
+    }
+    #modalBackdrop.show{display:block;}
+    #modal{
+      position:fixed;
+      left:50%;
+      top:50%;
+      transform: translate(-50%,-50%);
+      width:min(980px, calc(100vw - 28px));
+      height:min(78vh, 760px);
+      border-radius: 26px;
+      background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    #modalHeader{
+      padding:14px 14px 10px 14px;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+      border-bottom: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+    }
+    #modalHeader h2{
+      margin:0;
+      font-size:18px;
+      letter-spacing:-.01em;
+    }
+    #modalHeader p{
+      margin:6px 0 0 0;
+      color:rgba(255,255,255,.78);
+      font-weight:700;
+      font-size:12px;
+      line-height:1.45;
+      max-width: 70ch;
+    }
+    .closeBtn{
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.10);
+      color:#fff;
+      border-radius:14px;
+      padding:10px 12px;
+      font-weight:900;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+
+    #modalTools{
+      padding:12px 14px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      border-bottom: 1px solid rgba(255,255,255,.14);
+    }
+    .field{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.14);
+      border-radius: 14px;
+      padding:10px 10px;
+      min-width: 220px;
+      flex:1;
+    }
+    .field input{
+      width:100%;
+      border:0;
+      outline:none;
+      background: transparent;
+      color:#fff;
+      font-weight:800;
+    }
+    .field select{
+      width:100%;
+      border:0;
+      outline:none;
+      background: transparent;
+      color:#fff;
+      font-weight:800;
+      appearance:none;
+    }
+
+    #tableWrap{
+      height: calc(100% - 132px);
+      overflow:auto;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-variant-numeric: tabular-nums;
+    }
+    thead th{
+      position:sticky;
+      top:0;
+      z-index:2;
+      text-align:left;
+      font-size:12px;
+      color: rgba(255,255,255,.78);
+      font-weight:900;
+      letter-spacing:.02em;
+      background: rgba(0,0,0,.22);
+      border-bottom: 1px solid rgba(255,255,255,.14);
+      padding:12px 14px;
+      white-space:nowrap;
+    }
+    tbody td{
+      padding:12px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      font-size:13px;
+      font-weight:800;
+    }
+    tbody tr:hover{background: rgba(255,255,255,.06)}
+    .rank{width:52px}
+    .right{text-align:right}
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.08);
+      font-size:12px;
+      font-weight:900;
+    }
+    .dot{
+      width:10px;height:10px;border-radius:50%;
+      background: radial-gradient(circle at 30% 30%, #fff, rgba(255,255,255,0) 55%),
+                  linear-gradient(90deg, var(--gold), var(--accent));
+      box-shadow: 0 0 0 5px rgba(245,158,11,.16);
+    }
+    .meRow{
+      outline: 2px solid rgba(245,158,11,.35);
+      outline-offset: -2px;
+      background: rgba(245,158,11,.08);
+    }
+    .hintSmall{
+      font-size:12px;
+      color: rgba(255,255,255,.78);
+      font-weight:800;
+    }
+
+    /* Toast */
+    .toast{
+      position:fixed; left:50%; bottom:86px; transform:translateX(-50%);
+      background: rgba(10,12,18,.72); border:1px solid rgba(255,255,255,.18);
+      backdrop-filter: blur(14px);
+      padding:10px 14px; border-radius:999px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+      color: rgba(255,255,255,.92);
+      font-size:13px; display:none; z-index:60;
+      font-weight:900;
+    }
+    .toast.show{display:block; animation: pop .18s ease;}
+    @keyframes pop{
+      from{ transform: translateX(-50%) translateY(8px) scale(.98); opacity:0;}
+      to{ transform: translateX(-50%) translateY(0) scale(1); opacity:1;}
+    }
   </style>
 </head>
+
 <body>
   <div id="stage">
-    <img id="img" alt="PopDoge" />
+    <img id="logo" src="popdoge.png" alt="Popdoge logo" />
+    <img id="img" alt="Popdoge" />
 
-    <!-- LEFT overlay: show every 10 clicks -->
+    <!-- overlays -->
     <img id="wtf" class="overlay" src="wtf.png" alt="wtf" />
-
-    <!-- RIGHT overlay: show every 5 clicks -->
     <img id="keep" class="overlay" src="keep.png" alt="keep" />
   </div>
 
+  <!-- Bottom dashboard -->
   <div id="dash">
     <div id="dashTop">
-      <div class="brand">PopDoge</div>
+      <div class="brand">Popdoge</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
         <div class="pill">🖱️ <span class="muted">Clicks:</span> <span id="myClicks" class="num">0</span></div>
+        <div class="pill">⚡ <span class="muted">PPS:</span> <span id="pps" class="num">0.0</span></div>
+        <div class="pill">🌐 <span class="muted">VPN/Country:</span> <span id="myCountryLabel">—</span></div>
+        <button class="btn btnPrimary" id="openLb">Leaderboard</button>
       </div>
     </div>
-    <div id="support">Support us by ads — Ads help keep PopDoge free.</div>
+
+    <div id="dashBottom">
+      <div id="support">Compete by country. (This page can auto-detect *approximate* country, or you can choose manually.)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+        <button class="btn" id="resetLocal">Reset Local Scores</button>
+      </div>
+    </div>
   </div>
 
+  <!-- Leaderboard modal -->
+  <div id="modalBackdrop" aria-hidden="true">
+    <div id="modal" role="dialog" aria-modal="true" aria-label="Leaderboard">
+      <div id="modalHeader">
+        <div>
+          <h2>Leaderboard</h2>
+          <p>
+            This is a UI-ready country leaderboard. In pure HTML mode it saves locally (demo).
+            For real worldwide competition, connect a backend (Supabase/Firebase) where the “sync” hooks are marked in code.
+          </p>
+        </div>
+        <button class="closeBtn" id="closeLb">Close</button>
+      </div>
+
+      <div id="modalTools">
+        <div class="field" style="min-width:260px">
+          <span class="dot"></span>
+          <input id="search" placeholder="Search country…" autocomplete="off" />
+        </div>
+
+        <div class="field" style="min-width:260px">
+          <span class="hintSmall">Your VPN/Country</span>
+          <select id="countrySelect"></select>
+        </div>
+
+        <button class="btn" id="detectBtn">Auto-detect</button>
+      </div>
+
+      <div id="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="rank">#</th>
+              <th>Country</th>
+              <th class="right">Clicks</th>
+              <th class="right">PPS</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
   <script>
-    /**
-     * ✅ Changes requested (implemented)
-     * 1) Left overlay wtf.png appears on every count divisible by 10
-     * 2) Right overlay keep.png appears on every count divisible by 5
-     * 3) Every click: image flips to 2.jpg ALWAYS (momentarily), then returns to rule-based image
-     * 4) Every click: plays "Pop" sound
-     *
-     * Files needed next to this HTML:
-     * 1.jpg, 2.jpg, 3.jpg, 4.jpg, 5.jpg, wtf.png, keep.png
-     */
+    /***************
+     * FILES NEEDED
+     * 1.jpg 2.jpg 3.jpg 4.jpg 5.jpg
+     * wtf.png keep.png popdoge.png
+     ***************/
 
-    // ====== Images ======
-    const IMG_1 = "1.jpg";
-    const IMG_2 = "2.jpg";
-    const IMG_3 = "3.jpg";
-    const IMG_4 = "4.jpg";
-    const IMG_5 = "5.jpg";
+    // ====== Images rules you set earlier ======
+    const IMG_1="1.jpg", IMG_2="2.jpg", IMG_3="3.jpg", IMG_4="4.jpg", IMG_5="5.jpg";
+    const CLICK_FLASH_MS = 140; // flash time on click
 
-    // How long to show 2.jpg after each click (ms)
-    const CLICK_FLASH_MS = 90;
-
-    // ====== Image rules from your earlier message ======
-    // 1–50   -> 1.jpg
-    // 51–100 -> 2.jpg
-    // 1000+  -> 3/4/5 by milestones
+    // ✅ As requested currently: 1–1000 always 1.jpg (base image)
     function imageForClicks(clicks){
-      if (clicks >= 50000) return IMG_5; // includes 50k and 100k
-      if (clicks >= 10000) return IMG_4; // includes 10k and 30k
-      if (clicks >= 1000)  return IMG_3; // includes 1k and 5k
-
-      const within100 = ((clicks - 1) % 100) + 1; // 1..100 repeating
-      return (within100 <= 50) ? IMG_1 : IMG_2;
+      if (clicks >= 1 && clicks <= 1000) return IMG_1;
+      if (clicks >= 50000) return IMG_5;
+      if (clicks >= 10000) return IMG_4;
+      if (clicks >= 1001)  return IMG_3;
+      return IMG_1;
     }
 
-    // ---- Pop sound every click (Popcat-ish) ----
+    // ====== Country list (ISO 3166-1 alpha-2 + names) ======
+    // (All countries/territories for leaderboard UI)
+    const COUNTRIES = [
+      ["WW","Worldwide"],
+      ["AF","Afghanistan"],["AL","Albania"],["DZ","Algeria"],["AS","American Samoa"],["AD","Andorra"],["AO","Angola"],
+      ["AI","Anguilla"],["AQ","Antarctica"],["AG","Antigua and Barbuda"],["AR","Argentina"],["AM","Armenia"],["AW","Aruba"],
+      ["AU","Australia"],["AT","Austria"],["AZ","Azerbaijan"],["BS","Bahamas"],["BH","Bahrain"],["BD","Bangladesh"],
+      ["BB","Barbados"],["BY","Belarus"],["BE","Belgium"],["BZ","Belize"],["BJ","Benin"],["BM","Bermuda"],["BT","Bhutan"],
+      ["BO","Bolivia"],["BQ","Bonaire, Sint Eustatius and Saba"],["BA","Bosnia and Herzegovina"],["BW","Botswana"],["BR","Brazil"],
+      ["IO","British Indian Ocean Territory"],["BN","Brunei"],["BG","Bulgaria"],["BF","Burkina Faso"],["BI","Burundi"],
+      ["CV","Cabo Verde"],["KH","Cambodia"],["CM","Cameroon"],["CA","Canada"],["KY","Cayman Islands"],["CF","Central African Republic"],
+      ["TD","Chad"],["CL","Chile"],["CN","China"],["CX","Christmas Island"],["CC","Cocos (Keeling) Islands"],["CO","Colombia"],
+      ["KM","Comoros"],["CG","Congo"],["CD","Congo (DRC)"],["CK","Cook Islands"],["CR","Costa Rica"],["CI","Côte d’Ivoire"],
+      ["HR","Croatia"],["CU","Cuba"],["CW","Curaçao"],["CY","Cyprus"],["CZ","Czechia"],["DK","Denmark"],["DJ","Djibouti"],
+      ["DM","Dominica"],["DO","Dominican Republic"],["EC","Ecuador"],["EG","Egypt"],["SV","El Salvador"],["GQ","Equatorial Guinea"],
+      ["ER","Eritrea"],["EE","Estonia"],["SZ","Eswatini"],["ET","Ethiopia"],["FK","Falkland Islands"],["FO","Faroe Islands"],
+      ["FJ","Fiji"],["FI","Finland"],["FR","France"],["GF","French Guiana"],["PF","French Polynesia"],["TF","French Southern Territories"],
+      ["GA","Gabon"],["GM","Gambia"],["GE","Georgia"],["DE","Germany"],["GH","Ghana"],["GI","Gibraltar"],["GR","Greece"],
+      ["GL","Greenland"],["GD","Grenada"],["GP","Guadeloupe"],["GU","Guam"],["GT","Guatemala"],["GG","Guernsey"],["GN","Guinea"],
+      ["GW","Guinea-Bissau"],["GY","Guyana"],["HT","Haiti"],["HN","Honduras"],["HK","Hong Kong"],["HU","Hungary"],["IS","Iceland"],
+      ["IN","India"],["ID","Indonesia"],["IR","Iran"],["IQ","Iraq"],["IE","Ireland"],["IM","Isle of Man"],["IL","Israel"],["IT","Italy"],
+      ["JM","Jamaica"],["JP","Japan"],["JE","Jersey"],["JO","Jordan"],["KZ","Kazakhstan"],["KE","Kenya"],["KI","Kiribati"],
+      ["KP","Korea (North)"],["KR","Korea (South)"],["KW","Kuwait"],["KG","Kyrgyzstan"],["LA","Laos"],["LV","Latvia"],
+      ["LB","Lebanon"],["LS","Lesotho"],["LR","Liberia"],["LY","Libya"],["LI","Liechtenstein"],["LT","Lithuania"],["LU","Luxembourg"],
+      ["MO","Macao"],["MG","Madagascar"],["MW","Malawi"],["MY","Malaysia"],["MV","Maldives"],["ML","Mali"],["MT","Malta"],
+      ["MH","Marshall Islands"],["MQ","Martinique"],["MR","Mauritania"],["MU","Mauritius"],["YT","Mayotte"],["MX","Mexico"],
+      ["FM","Micronesia"],["MD","Moldova"],["MC","Monaco"],["MN","Mongolia"],["ME","Montenegro"],["MS","Montserrat"],["MA","Morocco"],
+      ["MZ","Mozambique"],["MM","Myanmar"],["NA","Namibia"],["NR","Nauru"],["NP","Nepal"],["NL","Netherlands"],["NC","New Caledonia"],
+      ["NZ","New Zealand"],["NI","Nicaragua"],["NE","Niger"],["NG","Nigeria"],["NU","Niue"],["NF","Norfolk Island"],["MK","North Macedonia"],
+      ["MP","Northern Mariana Islands"],["NO","Norway"],["OM","Oman"],["PK","Pakistan"],["PW","Palau"],["PS","Palestine"],["PA","Panama"],
+      ["PG","Papua New Guinea"],["PY","Paraguay"],["PE","Peru"],["PH","Philippines"],["PN","Pitcairn Islands"],["PL","Poland"],
+      ["PT","Portugal"],["PR","Puerto Rico"],["QA","Qatar"],["RE","Réunion"],["RO","Romania"],["RU","Russia"],["RW","Rwanda"],
+      ["BL","Saint Barthélemy"],["SH","Saint Helena"],["KN","Saint Kitts and Nevis"],["LC","Saint Lucia"],["MF","Saint Martin"],
+      ["PM","Saint Pierre and Miquelon"],["VC","Saint Vincent and the Grenadines"],["WS","Samoa"],["SM","San Marino"],["ST","São Tomé and Príncipe"],
+      ["SA","Saudi Arabia"],["SN","Senegal"],["RS","Serbia"],["SC","Seychelles"],["SL","Sierra Leone"],["SG","Singapore"],["SX","Sint Maarten"],
+      ["SK","Slovakia"],["SI","Slovenia"],["SB","Solomon Islands"],["SO","Somalia"],["ZA","South Africa"],["GS","South Georgia & South Sandwich Islands"],
+      ["ES","Spain"],["LK","Sri Lanka"],["SD","Sudan"],["SS","South Sudan"],["SR","Suriname"],["SE","Sweden"],["CH","Switzerland"],
+      ["SY","Syria"],["TW","Taiwan"],["TJ","Tajikistan"],["TZ","Tanzania"],["TH","Thailand"],["TL","Timor-Leste"],["TG","Togo"],
+      ["TK","Tokelau"],["TO","Tonga"],["TT","Trinidad and Tobago"],["TN","Tunisia"],["TR","Turkey"],["TM","Turkmenistan"],
+      ["TC","Turks and Caicos Islands"],["TV","Tuvalu"],["UG","Uganda"],["UA","Ukraine"],["AE","United Arab Emirates"],["GB","United Kingdom"],
+      ["US","United States"],["UM","U.S. Outlying Islands"],["UY","Uruguay"],["UZ","Uzbekistan"],["VU","Vanuatu"],["VA","Vatican City"],
+      ["VE","Venezuela"],["VN","Vietnam"],["VG","British Virgin Islands"],["VI","U.S. Virgin Islands"],["WF","Wallis and Futuna"],
+      ["EH","Western Sahara"],["YE","Yemen"],["ZM","Zambia"],["ZW","Zimbabwe"]
+    ];
+
+    // ====== Local leaderboard store (demo) ======
+    // For real global competition: replace these read/write parts with backend calls.
+    const LS_KEY = "popdoge_country_scores_v1";
+    const LS_ME  = "popdoge_my_country_v1";
+    const LS_CLICK_TIMES = "popdoge_click_times_v1"; // for PPS
+
+    function loadScores(){
+      try{
+        const raw = localStorage.getItem(LS_KEY);
+        return raw ? JSON.parse(raw) : {};
+      }catch{ return {}; }
+    }
+    function saveScores(scores){
+      localStorage.setItem(LS_KEY, JSON.stringify(scores));
+    }
+
+    function getMyCountry(){
+      return localStorage.getItem(LS_ME) || "WW";
+    }
+    function setMyCountry(code){
+      localStorage.setItem(LS_ME, code);
+    }
+
+    // ====== PPS helper ======
+    function loadClickTimes(){
+      try{
+        const raw = localStorage.getItem(LS_CLICK_TIMES);
+        return raw ? JSON.parse(raw) : [];
+      }catch{ return []; }
+    }
+    function saveClickTimes(arr){
+      localStorage.setItem(LS_CLICK_TIMES, JSON.stringify(arr));
+    }
+    function calcPPS(times){
+      const now = Date.now();
+      const windowMs = 5000;
+      const filtered = times.filter(t => now - t <= windowMs);
+      return { pps: filtered.length / (windowMs/1000), times: filtered };
+    }
+
+    // ====== Audio pop ======
     let audioCtx = null;
     function ensureAudio(){
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -135,94 +492,267 @@
     function popSound(){
       ensureAudio();
       const t = audioCtx.currentTime;
-
-      // pop tone
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = "square";
       osc.frequency.setValueAtTime(260, t);
       osc.frequency.exponentialRampToValueAtTime(140, t + 0.05);
-
       gain.gain.setValueAtTime(0.0001, t);
       gain.gain.exponentialRampToValueAtTime(0.22, t + 0.008);
       gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.075);
-
       osc.connect(gain).connect(audioCtx.destination);
-      osc.start(t);
-      osc.stop(t + 0.08);
-
-      // tiny noise click
-      const d = 0.015;
-      const size = Math.floor(audioCtx.sampleRate * d);
-      const buf = audioCtx.createBuffer(1, size, audioCtx.sampleRate);
-      const data = buf.getChannelData(0);
-      for (let i = 0; i < size; i++) data[i] = (Math.random() * 2 - 1) * 0.6;
-
-      const noise = audioCtx.createBufferSource();
-      noise.buffer = buf;
-
-      const ng = audioCtx.createGain();
-      ng.gain.setValueAtTime(0.0001, t);
-      ng.gain.exponentialRampToValueAtTime(0.10, t + 0.002);
-      ng.gain.exponentialRampToValueAtTime(0.0001, t + d);
-
-      noise.connect(ng).connect(audioCtx.destination);
-      noise.start(t);
-      noise.stop(t + d);
+      osc.start(t); osc.stop(t + 0.08);
     }
 
-    // ---- UI / click handling ----
+    // ====== UI refs ======
     const imgEl = document.getElementById("img");
     const myClicksEl = document.getElementById("myClicks");
+    const ppsEl = document.getElementById("pps");
+    const myCountryLabelEl = document.getElementById("myCountryLabel");
+
     const wtfEl = document.getElementById("wtf");
     const keepEl = document.getElementById("keep");
 
+    const modalBackdrop = document.getElementById("modalBackdrop");
+    const openLb = document.getElementById("openLb");
+    const closeLb = document.getElementById("closeLb");
+    const tbody = document.getElementById("tbody");
+    const searchEl = document.getElementById("search");
+    const countrySelect = document.getElementById("countrySelect");
+    const detectBtn = document.getElementById("detectBtn");
+    const resetLocal = document.getElementById("resetLocal");
+
+    const toastEl = document.getElementById("toast");
+    function toast(msg){
+      toastEl.textContent = msg;
+      toastEl.classList.add("show");
+      clearTimeout(toast._tm);
+      toast._tm = setTimeout(()=>toastEl.classList.remove("show"), 1200);
+    }
+
+    // ====== Game state ======
     let clicks = 0;
     let flashTimer = null;
 
-    function showOverlays(){
-      // show wtf.png every 10 clicks (10,20,30...)
-      if (clicks > 0 && clicks % 10 === 0) wtfEl.classList.add("show");
-      else wtfEl.classList.remove("show");
-
-      // show keep.png every 5 clicks (5,10,15...)
-      if (clicks > 0 && clicks % 5 === 0) keepEl.classList.add("show");
-      else keepEl.classList.remove("show");
-    }
-
     function setBaseImage(){
       const src = imageForClicks(clicks);
-      if (imgEl.dataset.base !== src){
-        imgEl.dataset.base = src;
-      }
+      imgEl.dataset.base = src;
       imgEl.src = src;
     }
 
+    // ✅ Your request: every click flashes to 2.jpg
     function flashClickImage(){
-      // Every click must switch to 2.jpg always
       imgEl.src = IMG_2;
       if (flashTimer) clearTimeout(flashTimer);
-      flashTimer = setTimeout(() => {
-        setBaseImage();
-      }, CLICK_FLASH_MS);
+      flashTimer = setTimeout(() => setBaseImage(), CLICK_FLASH_MS);
+    }
+
+    function showOverlays(){
+      const PING_MS = 260;
+      if (clicks > 0 && clicks % 10 === 0){
+        wtfEl.classList.add("show");
+        clearTimeout(showOverlays._wtfTm);
+        showOverlays._wtfTm = setTimeout(()=>wtfEl.classList.remove("show"), PING_MS);
+      }
+      if (clicks > 0 && clicks % 5 === 0){
+        keepEl.classList.add("show");
+        clearTimeout(showOverlays._keepTm);
+        showOverlays._keepTm = setTimeout(()=>keepEl.classList.remove("show"), PING_MS);
+      }
+    }
+
+    function updateDashboardPills(){
+      myClicksEl.textContent = clicks.toLocaleString("en-US");
+
+      const times = loadClickTimes();
+      const { pps, times: filtered } = calcPPS(times);
+      saveClickTimes(filtered);
+      ppsEl.textContent = pps.toFixed(1);
+
+      const myCode = getMyCountry();
+      const name = (COUNTRIES.find(x=>x[0]===myCode)?.[1]) || myCode;
+      myCountryLabelEl.textContent = name;
+    }
+
+    function addClickToLeaderboard(){
+      const myCode = getMyCountry();
+      const scores = loadScores();
+
+      // Ensure entries exist
+      scores["WW"] = (scores["WW"] || 0) + 1;
+      scores[myCode] = (scores[myCode] || 0) + 1;
+
+      saveScores(scores);
+
+      // ---- BACKEND SYNC HOOK (for real worldwide competition) ----
+      // sendScoreToServer(myCode, +1);
+      // sendScoreToServer("WW", +1);
+    }
+
+    function addClickTime(){
+      const times = loadClickTimes();
+      times.push(Date.now());
+      saveClickTimes(times);
     }
 
     function tap(){
       clicks += 1;
-      myClicksEl.textContent = clicks.toLocaleString("en-US");
 
       popSound();
       showOverlays();
 
-      // Always show 2.jpg immediately on click
+      addClickTime();
+      addClickToLeaderboard();
+      updateDashboardPills();
+
       flashClickImage();
+
+      // Keep leaderboard refreshed while open
+      if (modalBackdrop.classList.contains("show")) renderTable();
     }
 
     imgEl.addEventListener("pointerdown", (e)=>{ e.preventDefault(); tap(); });
     window.addEventListener("keydown", (e)=>{ if(e.code==="Space"){ e.preventDefault(); tap(); } });
 
-    // init
-    imgEl.src = IMG_1;
+    // ====== Leaderboard UI ======
+    function openModal(){
+      modalBackdrop.classList.add("show");
+      renderTable();
+    }
+    function closeModal(){
+      modalBackdrop.classList.remove("show");
+    }
+
+    openLb.addEventListener("click", openModal);
+    closeLb.addEventListener("click", closeModal);
+    modalBackdrop.addEventListener("click", (e)=>{ if(e.target===modalBackdrop) closeModal(); });
+
+    function renderCountrySelect(){
+      countrySelect.innerHTML = "";
+      for (const [code, name] of COUNTRIES){
+        const opt = document.createElement("option");
+        opt.value = code;
+        opt.textContent = name;
+        countrySelect.appendChild(opt);
+      }
+      countrySelect.value = getMyCountry();
+    }
+
+    function ppsByCountryEstimate(countryCode){
+      // local demo: PPS per country is the user's PPS only when they are that country
+      // for backend: you'd store per-country time series or rolling counters server-side.
+      const myCode = getMyCountry();
+      if (countryCode !== myCode && countryCode !== "WW") return 0;
+
+      const { pps } = calcPPS(loadClickTimes());
+      return pps;
+    }
+
+    function renderTable(){
+      const q = (searchEl.value || "").trim().toLowerCase();
+      const scores = loadScores();
+
+      // Build rows from country list so "all countries" exist in UI even if 0
+      const rows = COUNTRIES.map(([code, name]) => ({
+        code, name,
+        clicks: Number(scores[code] || 0),
+        pps: ppsByCountryEstimate(code)
+      }));
+
+      // filter
+      const filtered = q
+        ? rows.filter(r => r.name.toLowerCase().includes(q) || r.code.toLowerCase()===q)
+        : rows;
+
+      // sort by clicks desc (Worldwide pinned on top)
+      filtered.sort((a,b)=>{
+        if (a.code==="WW") return -1;
+        if (b.code==="WW") return 1;
+        return b.clicks - a.clicks;
+      });
+
+      const myCode = getMyCountry();
+
+      tbody.innerHTML = "";
+      filtered.forEach((r, i) => {
+        const tr = document.createElement("tr");
+        if (r.code === myCode) tr.classList.add("meRow");
+
+        const rank = (r.code==="WW") ? "🏆" : String(i);
+        tr.innerHTML = `
+          <td class="rank">${rank}</td>
+          <td>
+            <span class="tag"><span class="dot"></span>${r.name}</span>
+            <span style="margin-left:10px; color:rgba(255,255,255,.7); font-weight:900;">${r.code}</span>
+          </td>
+          <td class="right">${r.clicks.toLocaleString("en-US")}</td>
+          <td class="right">${r.pps.toFixed(1)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    searchEl.addEventListener("input", renderTable);
+
+    countrySelect.addEventListener("change", ()=>{
+      setMyCountry(countrySelect.value);
+      updateDashboardPills();
+      renderTable();
+      toast("Country set ✅");
+    });
+
+    // ====== Auto-detect country (approx) ======
+    // NOTE: This detects public IP geolocation, not “VPN brand”. If user uses VPN, country may reflect VPN exit node.
+    async function autoDetectCountry(){
+      try{
+        toast("Detecting…");
+        // Simple free endpoint; may be blocked in some environments.
+        const res = await fetch("https://ipapi.co/json/");
+        if (!res.ok) throw new Error("network");
+        const data = await res.json();
+        const code = (data && data.country_code) ? String(data.country_code).toUpperCase() : "WW";
+        if (COUNTRIES.some(x=>x[0]===code)){
+          setMyCountry(code);
+          countrySelect.value = code;
+          updateDashboardPills();
+          renderTable();
+          toast(`Detected: ${code}`);
+        }else{
+          toast("Detected country not in list");
+        }
+      }catch(e){
+        toast("Detect failed — choose manually");
+      }
+    }
+    detectBtn.addEventListener("click", autoDetectCountry);
+
+    resetLocal.addEventListener("click", ()=>{
+      localStorage.removeItem(LS_KEY);
+      localStorage.removeItem(LS_CLICK_TIMES);
+      clicks = 0;
+      setBaseImage();
+      updateDashboardPills();
+      renderTable();
+      toast("Local reset ✅");
+    });
+
+    // ====== Init ======
+    function init(){
+      renderCountrySelect();
+
+      // Default: try auto-detect silently once, but don't block
+      autoDetectCountry();
+
+      setBaseImage();
+      updateDashboardPills();
+    }
+    init();
+
+    // Keep PPS updated smoothly
+    setInterval(()=> {
+      updateDashboardPills();
+      if (modalBackdrop.classList.contains("show")) renderTable();
+    }, 400);
   </script>
 </body>
 </html>
